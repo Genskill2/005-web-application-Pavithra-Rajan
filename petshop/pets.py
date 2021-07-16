@@ -28,7 +28,7 @@ def search(field, value):
 
     if field=='tag':
         cursor.execute(f""" select p.id,p.name,p.bought,p.sold,a.name from pet p, animal a,tag t,tags_pets tpet where
-                        tpet.species=a.id and tpet.pet=p.id and tpet.tag=t.id and t.name=? order by p.{orderby} {or_asc}""",[value])
+                        p.species=a.id and tpet.pet=p.id and tpet.tag=t.id and t.name=? order by p.{orderby} {or_asc}""",[value])
     else:
         cursor.execute(f"""select p.id,p.name,p.bought,p.sold,a.name from pet p,animal a
                         where p.{field}=? order by p.{orderby}{or_asc}""",[value])
