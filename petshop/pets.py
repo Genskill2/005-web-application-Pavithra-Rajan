@@ -18,8 +18,24 @@ def format_date(d):
 
 @bp.route("/search/<field>/<value>")
 def search(field, value):
-    # TBD
-    return ""
+    conn=db.get_db()
+    cursor=conn.cursor()
+    orderby=request.args.get("order_by","id")
+    or_asc=request.args.get("order","asc")
+
+    if orderby not in ['desc','asc']:
+        orderby='asc'
+
+    if field=='tag':
+        cursor.execute(f""" select p.id,p.name,p.bought,p.sold,a.name from pet p, animal a,tag t,tags_pets tpet where
+                        tpet.species=a.id and tpet.pet=p.id and tpet.tag=t.id and t.name=? order by p.{orderby} {or_asc}""",[value])
+    else:
+        cursor.execute(f"""select p.id,p.name,p.bought,p.sold,a.name from pet p,animal a
+                        where p.{field}=? order by p.{orderby}{or_asc}""",[value])
+
+    pets=cursor.fetchall()
+
+    return render_template('search.html',pets=pets,field=field,value=value,or_asc='asc' if or_asc=="desc" else "desc")
 
 @bp.route("/")
 def dashboard():
@@ -28,9 +44,9 @@ def dashboard():
     oby = request.args.get("order_by", "id") # TODO. This is currently not used. 
     order = request.args.get("order", "asc")
     if order == "asc":
-        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.id")
+        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.{oby}")
     else:
-        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.id desc")
+        cursor.execute(f"select p.id, p.name, p.bought, p.sold, s.name from pet p, animal s where p.species = s.id order by p.{oby} desc")
     pets = cursor.fetchall()
     return render_template('index.html', pets = pets, order="desc" if order=="asc" else "asc")
 
@@ -75,6 +91,8 @@ def edit(pid):
         description = request.form.get('description')
         sold = request.form.get("sold")
         # TODO Handle sold
+        cursor.execute(f"""update pet set description = ? , sold= ? where id = ? """,[description,sold,pid])
+        conn.commit()
         return redirect(url_for("pets.pet_info", pid=pid), 302)
         
     
